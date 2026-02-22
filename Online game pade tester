@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="google-site-verification" content="Nkf7R43_ddmP-YdDI1zTZtygZv2DojjHTSe0B9v1CnI" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Upgrade Gamepad Tester</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background:#001f4d;
+  color:white;
+  text-align:center;
+  padding:20px;
+}
+h1 { margin-bottom:10px; }
+.controller {
+  margin:20px auto;
+  padding:20px;
+  border:1px solid #0055aa;
+  display:inline-block;
+  border-radius:10px;
+}
+.btn { display:inline-block; width:60px; height:60px; margin:5px; line-height:60px; border-radius:50%; background:#004080; color:white; font-weight:bold; cursor:pointer; user-select:none; }
+.active { background:#00ff80 !important; color:black; }
+.stick { display:inline-block; width:80px; height:80px; background:#004080; border-radius:50%; margin:5px; line-height:80px; position:relative; }
+.stick-inner { width:20px; height:20px; background:#00ff80; border-radius:50%; position:absolute; top:30px; left:30px; }
+.trigger { width:40px; height:80px; background:#003366; margin:5px; display:inline-block; border-radius:10px; line-height:80px; position:relative; }
+.trigger-inner { width:100%; height:0%; background:#00ff80; position:absolute; bottom:0; left:0; }
+button { padding:10px 20px; margin:10px; font-size:1em; cursor:pointer; }
+.log { font-size:0.9em; color:#aaffaa; max-height:200px; overflow-y:auto; border-top:1px solid #0055aa; padding:10px; margin-top:20px; background:#001f70; border-radius:5px; text-align:left;}
+</style>
+</head>
+<body>
+<h1>Ultimate Upgrade Gamepad Tester</h1>
+<p>Connect your controller and test all buttons/sticks/triggers!</p>
+
+<div id="controllers-container"></div>
+
+<button id="join">Join Match</button>
+<button id="leave">Leave Match</button>
+
+<script>
+let players = [];
+let logs = [];
+const controllers = {};
+
+function logMessage(msg, controllerId = 'Main') {
+    let logId = `log-${controllerId}`;
+    let logEl = document.getElementById(logId);
+    if(!logEl){
+        // create log panel
+        logEl = document.createElement('div');
+        logEl.id = logId;
+        logEl.className = 'log';
+        document.getElementById('controllers-container').appendChild(logEl);
+    }
+    logs.push(`${controllerId}: ${msg}`);
+    if(logs.length > 100) logs.shift();
+    logEl.textContent = logs.filter(l=>l.startsWith(controllerId)).join('\n');
+}
+
+// Community Join/Leave
+document.getElementById('join').addEventListener('click', ()=>{
+    let id = Math.floor(Math.random()*1000);
+    players.push(id);
+    logMessage(`Player ${id} joined the match!`);
+});
+document.getElementById('leave').addEventListener('click', ()=>{
+    if(players.length===0) return;
+    let id = players.pop();
+    logMessage(`Player ${id} left the match.`);
+});
+
+// Gamepad loop
+function updateGamepads(){
+    let gps = navigator.getGamepads ? navigator.getGamepads() : [];
+    for(let gp of gps){
+        if(!gp) continue;
+        let cid = gp.index;
+        if(!controllers[cid]){
+            // create controller visual
+            let cdiv = document.createElement('div');
+            cdiv.className = 'controller';
+            cdiv.id = `controller-${cid}`;
+            cdiv.innerHTML = `
+              <div class="btn" id="btnA-${cid}">A</div>
+              <div class="btn" id="btnB-${cid}">B</div>
+              <div class="btn" id="btnX-${cid}">X</div>
+              <div class="btn" id="btnY-${cid}">Y</div>
+              <div class="stick" id="stickLeft-${cid}"><div class="stick-inner"></div></div>
+              <div class="stick" id="stickRight-${cid}"><div class="stick-inner"></div></div>
+              <div class="trigger" id="triggerL-${cid}"><div class="trigger-inner"></div></div>
+              <div class="trigger" id="triggerR-${cid}"><div class="trigger-inner"></div></div>
+            `;
+            document.getElementById('controllers-container').appendChild(cdiv);
+            controllers[cid] = { prevButtons: [] };
+            logMessage('Connected', cid);
+        }
+        // Buttons
+        gp.buttons.forEach((b,i)=>{
+            if(b.pressed && !controllers[cid].prevButtons[i]){
+                logMessage(`Button ${i} pressed`, cid);
+                highlightButton(i,cid);
+                if(gp.vibrationActuator) gp.vibrationActuator.playEffect("dual-rumble",{startDelay:0,duration:100,strongMagnitude:0.5,weakMagnitude:0.5});
+            }
+            controllers[cid].prevButtons[i] = b.pressed;
+        });
+        // Sticks drag
+        let [lx,ly,rx,ry] = gp.axes;
+        let lstick = document.querySelector(`#stickLeft-${cid} .stick-inner`);
+        let rstick = document.querySelector(`#stickRight-${cid} .stick-inner`);
+        if(lstick) lstick.style.transform = `translate(${lx*30}px, ${ly*30}px)`;
+        if(rstick) rstick.style.transform = `translate(${rx*30}px, ${ry*30}px)`;
+        // Triggers simulation
+        let tl = document.querySelector(`#triggerL-${cid} .trigger-inner`);
+        let tr = document.querySelector(`#triggerR-${cid} .trigger-inner`);
+        if(tl) tl.style.height = `${gp.buttons[6]?.value*100}%`;
+        if(tr) tr.style.height = `${gp.buttons[7]?.value*100}%`;
+    }
+    requestAnimationFrame(updateGamepads);
+}
+requestAnimationFrame(updateGamepads);
+
+// Highlight buttons
+const btnMap = {0:'btnA',1:'btnB',2:'btnX',3:'btnY',4:'triggerL',5:'triggerR'};
+function highlightButton(i,cid){
+    let el = document.getElementById(`${btnMap[i]}-${cid}`);
+    if(el){
+        el.classList.add('active');
+        setTimeout(()=>el.classList.remove('active'),200);
+    }
+}
+
+// Connect/disconnect events
+window.addEventListener("gamepadconnected", (e)=>{
+    logMessage(`Gamepad connected: ${e.gamepad.id}`, e.gamepad.index);
+});
+window.addEventListener("gamepaddisconnected", (e)=>{
+    logMessage(`Gamepad disconnected: ${e.gamepad.id}`, e.gamepad.index);
+    let div = document.getElementById(`controller-${e.gamepad.index}`);
+    if(div) div.remove();
+    delete controllers[e.gamepad.index];
+});
+</script>
+</body>
+</html>
