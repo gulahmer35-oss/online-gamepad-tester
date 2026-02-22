@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="google-site-verification" content="8eJERpuBrMFIxqDRim9URjrJjY5Uz-7xRwi_rPCwCng" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ultimate Upgrade Gamepad Tester</title>
 <style>
@@ -48,7 +49,6 @@ function logMessage(msg, controllerId = 'Main') {
     let logId = `log-${controllerId}`;
     let logEl = document.getElementById(logId);
     if(!logEl){
-        // create log panel
         logEl = document.createElement('div');
         logEl.id = logId;
         logEl.className = 'log';
@@ -78,7 +78,6 @@ function updateGamepads(){
         if(!gp) continue;
         let cid = gp.index;
         if(!controllers[cid]){
-            // create controller visual
             let cdiv = document.createElement('div');
             cdiv.className = 'controller';
             cdiv.id = `controller-${cid}`;
@@ -96,7 +95,6 @@ function updateGamepads(){
             controllers[cid] = { prevButtons: [] };
             logMessage('Connected', cid);
         }
-        // Buttons
         gp.buttons.forEach((b,i)=>{
             if(b.pressed && !controllers[cid].prevButtons[i]){
                 logMessage(`Button ${i} pressed`, cid);
@@ -105,13 +103,11 @@ function updateGamepads(){
             }
             controllers[cid].prevButtons[i] = b.pressed;
         });
-        // Sticks drag
         let [lx,ly,rx,ry] = gp.axes;
         let lstick = document.querySelector(`#stickLeft-${cid} .stick-inner`);
         let rstick = document.querySelector(`#stickRight-${cid} .stick-inner`);
         if(lstick) lstick.style.transform = `translate(${lx*30}px, ${ly*30}px)`;
         if(rstick) rstick.style.transform = `translate(${rx*30}px, ${ry*30}px)`;
-        // Triggers simulation
         let tl = document.querySelector(`#triggerL-${cid} .trigger-inner`);
         let tr = document.querySelector(`#triggerR-${cid} .trigger-inner`);
         if(tl) tl.style.height = `${gp.buttons[6]?.value*100}%`;
@@ -121,7 +117,6 @@ function updateGamepads(){
 }
 requestAnimationFrame(updateGamepads);
 
-// Highlight buttons
 const btnMap = {0:'btnA',1:'btnB',2:'btnX',3:'btnY',4:'triggerL',5:'triggerR'};
 function highlightButton(i,cid){
     let el = document.getElementById(`${btnMap[i]}-${cid}`);
@@ -131,7 +126,6 @@ function highlightButton(i,cid){
     }
 }
 
-// Connect/disconnect events
 window.addEventListener("gamepadconnected", (e)=>{
     logMessage(`Gamepad connected: ${e.gamepad.id}`, e.gamepad.index);
 });
@@ -144,3 +138,4 @@ window.addEventListener("gamepaddisconnected", (e)=>{
 </script>
 </body>
 </html>
+
